@@ -1,0 +1,6 @@
+Affine2D # Type of transform
+0.0,0.0 # Lower left
+1.0,1.0 # Upper right
+1.0,0.0,0.0,1.0,0.0,0.0 # transform nr: 1 (a00, a01, a10, a11, b0, b1)
+1.0,0.0,0.0,1.0,0.0,0.0 # transform nr: 2 (a00, a01, a10, a11, b0, b1)
+1.0,0.0,0.0,1.0,0.0,0.0 # transform nr: 3 (a00, a01, a10, a11, b0, b1)

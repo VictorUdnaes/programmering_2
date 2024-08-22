@@ -1,0 +1,91 @@
+image: maven:3.8.6-eclipse-temurin-17
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  - deploy
+  - package
+
+variables:
+  MAVEN_OPTS: "-Djava.awt.headless=true -Dprism.order=sw -Dprism.verbose=true -Dglass.platform=Monocle -Dmonocle.platform=Headless"
+
+before_script:
+  - apt-get update && apt-get install -y xvfb libxext6 libxrender1 libxtst6 libxi6 libfreetype6 libfontconfig1 libx11-6 libgtk-3-0
+  - Xvfb :99 -screen 0 1024x768x16 &  # Start Xvfb
+  - export DISPLAY=:99  # Set display for Xvfb
+
+build-job:
+  stage: build
+  script:
+    - echo "Compiling the code..."
+    - mvn compile
+    - echo "Compile complete."
+
+test:
+  stage: test
+  script:
+    - Xvfb :99 -screen 0 1024x768x16 &  # Start Xvfb
+    - export DISPLAY=:99  # Set display for Xvfb
+    - mvn clean test
+  artifacts:
+    paths:
+      - target/surefire-reports/
+    reports:
+      junit: target/surefire-reports/*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/site/jacoco/jacoco.xml
+
+package:
+  stage: package
+  script:
+    - mvn clean package
+  artifacts:
+    paths:
+      - target/idatt2002demo-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+generatepdf:
+  image: ubuntu:20.04 #20.04  # vi kjører dette i en docker container, som kjører Ubuntu Linux
+  stage: deploy # vi kjører den parallelt med å publisere javadoc til Pages
+  when: manual
+  script:
+    - apt-get update --allow-insecure-repositories
+    - apt-get install -y wget
+    - apt-get install -y fontconfig libfreetype6 libjpeg-turbo8 libpng16-16 libx11-6 libxcb1 libxext6 libxrender1 xfonts-75dpi xfonts-base
+    - wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
+    - dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
+    - apt-get -y install nodejs
+    - apt-get -y install npm
+    - npm install -g github-wikito-converter
+    - apt-get -y install git
+    - export my_url="${CI_PROJECT_URL:8}"
+    - export final_url="https://gitlab-ci-token:$CI_JOB_TOKEN@$my_url"
+    - git clone "$final_url.wiki.git"
+    - gwtc $CI_PROJECT_NAME.wiki
+    - wkhtmltopdf documentation.html wiki.pdf
+  artifacts:
+    paths:
+      - wiki.pdf
+  only:
+    - web
+
+pages:
+  stage: deploy
+  when: manual
+  script:
+    - mvn clean package
+    - mvn javadoc:javadoc
+    - ls target/site/
+    - ls target/site/apidocs/
+    - mkdir .public
+    - cd .public
+    - mkdir apidocs
+    - mkdir coverage
+    - cd ..
+    - cp -rf target/site/apidocs/* .public/apidocs/
+    - cp -rf target/site/jacoco/* .public/coverage/
+    - cp -rf page/index.html .public
+    - mv -f .public public
+  artifacts:
+    paths:
+      - public

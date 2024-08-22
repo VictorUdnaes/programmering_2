@@ -1,0 +1,248 @@
+package edu.ntnu.stud.views.views.applicationPanes;
+
+import edu.ntnu.stud.utils.ErrorCode;
+import edu.ntnu.stud.utils.FractalGenerationException;
+import edu.ntnu.stud.model.chaosGame.Viewport;
+import edu.ntnu.stud.views.components.buttons.NavigationButton;
+import edu.ntnu.stud.views.components.parameterComponents.Parameter;
+import edu.ntnu.stud.views.components.parameterComponents.ParameterComponent;
+import edu.ntnu.stud.views.components.parameterComponents.ParameterObserver;
+import edu.ntnu.stud.views.components.parameterComponents.ParameterValidator;
+import edu.ntnu.stud.views.views.FractalFactory;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
+
+/**
+ * The main menu view. The main menu is the first view that is displayed when the application is
+ * started. The main menu contains boxes for selecting different fractals, as well as saved fractal configurations.
+ */
+public class FractalMenu implements ParameterObserver {
+    private final int paneWidth;
+    private final int paneHeight;
+    private Stage stage;
+    private FractalFactory fractalFactory;
+    private String fractalName;
+    private ParameterComponent parameterComponent;
+
+    public FractalMenu(Stage stage, int paneWidth, int paneHeight) {
+        this.paneWidth = paneWidth;
+        this.paneHeight = paneHeight;
+        this.stage = stage;
+    }
+
+    /**
+     * <p>Displays the fractal menu.</p>
+     * The fractal menu displays the fractal name, information about the fractal, the parameter component,
+     * and a button to generate the fractal.
+     */
+    public void display(String imagePath, String fractalName, ParameterComponent parameterComponent,
+                        FractalFactory fractalFactory) {
+        // Set the fractal name, parameter component, and view factory
+        this.fractalName = fractalName;
+        this.parameterComponent = parameterComponent;
+        this.fractalFactory = fractalFactory;
+
+        // Create the left and right boxes
+        HBox layout = new HBox();
+        layout.setAlignment(Pos.CENTER);
+        VBox leftBox = new VBox();
+        leftBox.setPadding(new javafx.geometry.Insets(50));
+        Button mainMenuButton = NavigationButton.mainMenuButton();
+        Label title = new Label(fractalName);
+        title.setFont(new javafx.scene.text.Font("Arial", 50));
+
+        Label infobox = infobox(fractalName);
+
+        // Add parameter component to the left box
+        Label parameterTitle = new Label("Parameters");
+        parameterTitle.setFont(new javafx.scene.text.Font("Arial", 30));
+        parameterTitle.setPadding(new javafx.geometry.Insets(10, 0, 10, 0));
+        leftBox.getChildren().addAll(mainMenuButton, title, infobox, parameterTitle,
+                parameterComponent.getParameterPane());
+
+        VBox rightBox = new VBox();
+        rightBox.setSpacing(10);
+        Image image = new Image(imagePath);
+        ImageView imageView = new ImageView(image);
+        imageView.setFitHeight(200);
+        imageView.setFitWidth(200);
+
+        Button button = generateButton();
+        try {
+            rightBox.getChildren().addAll(imageView, button);
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+        layout.getChildren().addAll(leftBox, rightBox);
+        layout.setStyle("-fx-background-color: #ECECEC;");
+        Scene scene = new Scene(layout, paneWidth, paneHeight);
+        stage.setScene(scene);
+        stage.setTitle("Fractal Menu");
+        stage.show();
+
+    }
+
+    /**
+     * <p>Creates an infobox with information about the fractal.</p>
+     * The method creates an infobox with information about the fractal based on the fractal name.
+     *
+     * @param fractalName The name of the fractal.
+     * @return The created infobox.
+     */
+    private static Label infobox(String fractalName) {
+        Label infobox = new Label();
+        switch (fractalName) {
+            case "Mandelbrot Fractal" -> infobox.setText(
+                    "The Mandelbrot Set is one of the most famous and visually captivating examples of fractal geometry. " +
+                            "Named after mathematician Benoît B. Mandelbrot, it is defined by a simple iterative equation:\n" +
+                            "z_{n+1} = z_n^2 + c\n" +
+                            "where z and c are complex numbers, and the initial value z_0 is zero. The set consists of all values of c " +
+                            "for which the sequence remains bounded; in other words, it does not tend towards infinity.\n" +
+                            "Characteristics of the Mandelbrot Set:" +
+                            "- Infinite Complexity: Despite being generated by a simple formula, the boundary of the Mandelbrot Set exhibits " +
+                            "an infinite variety of intricate, self-similar structures at every level of magnification.\n" +
+                            "- Visual Appeal: The set's edge reveals stunning patterns and shapes, which can be explored in infinite detail, " +
+                            "creating an ever-changing and mesmerizing visual experience.\n" +
+                            "- Mathematical Significance: The Mandelbrot Set is not only a beautiful object but also a fundamental example " +
+                            "in the study of complex dynamics and chaos theory.\n" +
+                            "By adjusting the parameters and zooming in on different parts of the set, you can uncover endlessly fascinating " +
+                            "patterns, making the Mandelbrot Set a perfect subject for exploration in your fractal application."
+            );
+            case "Julia Set" -> infobox.setText(
+                    "The Julia Set, named after the French mathematician Gaston Julia, is another fascinating example of fractal geometry. " +
+                            "Similar to the Mandelbrot Set, the Julia Set is defined by the iterative equation:\n" +
+                            "z_{n+1} = z_n^2 + c\n" +
+                            "In this case, the value of c is constant, and the initial value z_0 is a complex number that varies. " +
+                            "The Julia Set is composed of the initial values z_0 for which the sequence remains bounded, not diverging to infinity.\n" +
+                            "Characteristics of the Julia Set:\n\n" +
+                            "- Diverse Forms: Each different value of c produces a unique Julia Set, resulting in an incredible variety of shapes " +
+                            "and patterns. Some Julia Sets are connected and have intricate structures, while others are completely disconnected, " +
+                            "resembling dust.\n" +
+                            "- Self-Similarity: Julia Sets exhibit self-similar patterns, meaning that smaller portions of the set resemble the " +
+                            "entire structure. This property is typical of fractals and adds to the visual complexity of the set.\n" +
+                            "- Relationship to the Mandelbrot Set: There is a deep connection between the Mandelbrot Set and the Julia Set. " +
+                            "For a given value of c, if c is within the Mandelbrot Set, the corresponding Julia Set will be connected; if c is " +
+                            "outside, the Julia Set will be disconnected.\n" +
+                            "By exploring different values of c, you can generate a vast array of beautiful and intricate patterns, making the " +
+                            "Julia Set an intriguing subject for fractal exploration in your application."
+            );
+            case "Sierpinski Triangle" -> infobox.setText(
+                    "The Sierpinski Triangle, named after the Polish mathematician Wacław Sierpiński, is a famous fractal that exhibits self-similar patterns. " +
+                            "It is created through a simple recursive process that produces a highly symmetric and visually appealing structure.\n\n" +
+                            "Construction of the Sierpinski Triangle:\n\n" +
+                            "1. Start with an equilateral triangle.\n" +
+                            "2. Divide it into four smaller equilateral triangles by connecting the midpoints of each side.\n" +
+                            "3. Remove the central triangle.\n" +
+                            "4. Repeat the process recursively for each of the remaining smaller triangles.\n\n" +
+                            "Characteristics of the Sierpinski Triangle:\n\n" +
+                            "- Self-Similarity: The Sierpinski Triangle is self-similar, meaning that each smaller triangle is a reduced-scale copy of the entire structure. This property is a hallmark of fractals.\n" +
+                            "- Infinite Detail: The recursive construction process can be repeated indefinitely, producing an infinitely detailed pattern.\n" +
+                            "- Mathematical Significance: The Sierpinski Triangle is an important object in the study of fractal geometry and recursion. It has applications in various fields, including computer science, art, and nature.\n\n" +
+                            "The simplicity of its construction and the beauty of its structure make the Sierpinski Triangle a captivating subject for exploration in your fractal application." +
+                            "\n **OBS! To navigate the the fractal press the arrow keys**"
+            );
+            case "Barnsley-Fern Fractal" -> infobox.setText(
+                    "The Barnsley Fern is a famous fractal named after British mathematician Michael Barnsley. " +
+                            "It is known for its striking resemblance to a natural fern leaf and is created using an iterative process called an iterated function system (IFS).\n\n" +
+                            "Construction of the Barnsley Fern:\n\n" +
+                            "The Barnsley Fern is generated using four affine transformations, each applied with a specific probability:\n" +
+                            "1. f1: x = 0, y = 0.16*y (Probability: 1%)\n" +
+                            "2. f2: x = 0.85*x + 0.04*y, y = -0.04*x + 0.85*y + 1.6 (Probability: 85%)\n" +
+                            "3. f3: x = 0.2*x - 0.26*y, y = 0.23*x + 0.22*y + 1.6 (Probability: 7%)\n" +
+                            "4. f4: x = -0.15*x + 0.28*y, y = 0.26*x + 0.24*y + 0.44 (Probability: 7%)\n\n" +
+                            "Characteristics of the Barnsley Fern:\n\n" +
+                            "- Self-Similarity: Like many fractals, the Barnsley Fern exhibits self-similarity, with smaller parts of the fern resembling the entire structure.\n" +
+                            "- Natural Appearance: The Barnsley Fern's realistic appearance demonstrates how mathematical formulas can model natural phenomena.\n" +
+                            "- Iterative Process: The fractal is generated through repeated application of the affine transformations, illustrating the power of recursion and iteration in creating complex patterns.\n" +
+                            "The Barnsley Fern is a fascinating example of how simple mathematical rules can produce intricate and lifelike patterns, making it a compelling subject for your fractal application." +
+                            "\n **OBS! To navigate the the fractal press the arrow keys**"
+            );
+
+        }
+        infobox.setStyle("-fx-font-size: 15px;");
+        infobox.setMaxWidth(1000);
+        infobox.setLineSpacing(2);
+        infobox.setWrapText(true);
+        return infobox;
+    }
+
+    /**
+     * <p>Button that generates a fractal when clicked.</p>
+     * When pressed, the button calls <p>GenerateFractal</p> method to get the canvas,
+     * and displays the fractal canvas in the <p>FractalDisplay</p> window.
+     *
+     * @return The generated button.
+     * @see FractalDisplay
+     */
+    private Button generateButton() throws FractalGenerationException {
+        Button button;
+        button = new Button("Generate");
+        try {
+            button.setOnAction(e -> displayFractal());
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+        return button;
+    }
+
+    /**
+     * <p>Generates a fractal canvas based on the provide fractalName parameter.</p>
+     * The class calls the corresponding method in the ViewFactory class along with the parameter component,
+     * and calls the <p>displayFractalDisplay</p> method in the Router class to display the fractal.
+     */
+    private void displayFractal() {
+        try {
+            Canvas fractalCanvas;
+            int width;
+            int height;
+            try {
+                width = Integer.parseInt(parameterComponent.getParameterValue("WIDTH"));
+                height = Integer.parseInt(parameterComponent.getParameterValue("HEIGHT"));
+            } catch (NumberFormatException e) {
+                throw new FractalGenerationException(ErrorCode.INVALID_PARAMETER, fractalName, e);
+            }
+            Viewport viewport = new Viewport(0, 0, width, height, fractalName);
+            switch (fractalName) {
+                case "Mandelbrot Fractal" -> fractalCanvas = fractalFactory.createMandelbrotFractal(parameterComponent);
+                case "Julia Set" -> fractalCanvas = fractalFactory.createCoordinateJuliaFractal(parameterComponent);
+                case "Sierpinski Triangle", "Barnsley-Fern Fractal" -> fractalCanvas =
+                        fractalFactory.createAffineFractal(fractalName, parameterComponent, viewport);
+                default -> throw new FractalGenerationException(ErrorCode.INVALID_FRACTAL_NAME, fractalName);
+            }
+            Router.getInstance().displayFractalDisplay(fractalName, fractalCanvas, viewport);
+        } catch (FractalGenerationException e) {
+            // Have to alert the router here, as this method is called in the button action event,
+            // which causes the exception to divert from the normal callstack into a bunch of JavaFX classes
+            // and becomes literally uncatchable for some reason.
+            Router.alert(e);
+        }
+    }
+
+    /**
+     * <p>Updates the parameter component based on the parameter changes.</p>
+     * The method validates the parameter changes and updates the parameter component accordingly.
+     *
+     * @param parameter The parameter that has changed.
+     */
+    @Override
+    public void onParameterChanged(Parameter parameter) {
+        switch (parameter.getParameterName()) {
+            case "WIDTH", "HEIGHT" -> ParameterValidator.validateWidthAndHeight(parameter);
+            case "ITERATIONS" -> ParameterValidator.validateIterations(parameter);
+            case "MAX ITERATIONS" -> ParameterValidator.validateMaxIterations(parameter);
+            case "STARTING POINT X" -> ParameterValidator.validateStartingPoint(parameter, paneWidth);
+            case "STARTING POINT Y" -> ParameterValidator.validateStartingPoint(parameter, paneHeight);
+            case "REAL PART OF C", "IMAGINARY PART OF C" -> ParameterValidator.validateDouble(parameter);
+        }
+    }
+}
